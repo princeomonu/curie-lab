@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const createGeneration = mutation({
   args: {
-    userId: v.string(),
     modelKey: v.string(),
     promptOriginal: v.string(),
     promptFinal: v.string(),
@@ -16,8 +16,10 @@ export const createGeneration = mutation({
     mediaType: v.union(v.literal("image"), v.literal("video")),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
     return await ctx.db.insert("generations", {
-      userId: args.userId,
+      userId,
       modelKey: args.modelKey,
       promptOriginal: args.promptOriginal,
       promptFinal: args.promptFinal,
@@ -73,11 +75,13 @@ export const failGeneration = mutation({
 });
 
 export const listGenerations = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const generations = await ctx.db
       .query("generations")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .take(50);
 
@@ -94,26 +98,16 @@ export const listGenerations = query({
 });
 
 export const getGeneration = query({
-  args: { generationId: v.id("generations"), userId: v.string() },
+  args: { generationId: v.id("generations") },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
     const gen = await ctx.db.get(args.generationId);
-    if (!gen || gen.userId !== args.userId) return null;
+    if (!gen || gen.userId !== userId) return null;
     let outputUrl = gen.outputUrl;
     if (!outputUrl && gen.outputStorageId) {
       outputUrl = (await ctx.storage.getUrl(gen.outputStorageId)) ?? undefined;
     }
     return { ...gen, outputUrl };
-  },
-});
-
-export const getPendingGenerations = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("generations")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", args.userId).eq("status", "processing")
-      )
-      .collect();
   },
 });

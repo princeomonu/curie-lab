@@ -9,12 +9,11 @@ import type { Generation } from "@/types";
 import { MODELS } from "@/lib/models";
 
 interface Props {
-  userId: string;
   onSelectGeneration?: (gen: Generation) => void;
 }
 
-export function Gallery({ userId, onSelectGeneration }: Props) {
-  const generations = useQuery(api.generations.listGenerations, { userId }) as Generation[] | undefined;
+export function Gallery({ onSelectGeneration }: Props) {
+  const generations = useQuery(api.generations.listGenerations) as Generation[] | undefined;
   const createAsset = useMutation(api.assets.createAsset);
   const generateUploadUrl = useMutation(api.assets.generateUploadUrl);
 
@@ -36,7 +35,6 @@ export function Gallery({ userId, onSelectGeneration }: Props) {
       if (!uploadRes.ok) throw new Error("Upload failed");
       const { storageId } = await uploadRes.json();
       await createAsset({
-        userId,
         label: `Gen-${gen._id.slice(-6)}`,
         storageId,
         sourceType: "generated",

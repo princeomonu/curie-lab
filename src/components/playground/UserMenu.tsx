@@ -1,20 +1,22 @@
-import { useClerk, useUser } from "@clerk/clerk-react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 
 export function UserMenu() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { signOut } = useAuthActions();
+  const viewer = useQuery(api.users.viewer);
 
-  if (!user) return null;
+  if (!viewer) return null;
 
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
-        {user.imageUrl ? (
+        {viewer.image ? (
           <img
-            src={user.imageUrl}
-            alt={user.fullName ?? "User"}
+            src={viewer.image}
+            alt={viewer.name ?? "User"}
             className="w-7 h-7 rounded-full object-cover"
           />
         ) : (
@@ -23,14 +25,14 @@ export function UserMenu() {
           </div>
         )}
         <span className="text-sm text-[#0f0f11] hidden sm:block">
-          {user.firstName ?? user.emailAddresses[0]?.emailAddress}
+          {viewer.name ?? viewer.email}
         </span>
       </div>
       <Button
         variant="ghost"
         size="icon"
         className="h-7 w-7 text-[#6b7280] hover:text-red-500"
-        onClick={() => signOut()}
+        onClick={() => void signOut()}
         title="Sign out"
       >
         <LogOut className="h-3.5 w-3.5" />

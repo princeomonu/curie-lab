@@ -1,36 +1,29 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  // Whitelisted users
+  ...authTables,
+
+  // Whitelisted emails
   invitedUsers: defineTable({
     email: v.string(),
     invitedAt: v.number(),
   }).index("by_email", ["email"]),
 
-  // User sessions/profiles
-  users: defineTable({
-    clerkId: v.string(),
-    email: v.string(),
-    name: v.optional(v.string()),
-    imageUrl: v.optional(v.string()),
-    createdAt: v.number(),
-  }).index("by_clerk_id", ["clerkId"]),
-
   // Reusable reference assets
   assets: defineTable({
-    userId: v.string(),
+    userId: v.id("users"),
     label: v.string(),
     storageId: v.id("_storage"),
     sourceType: v.union(v.literal("upload"), v.literal("generated")),
     mimeType: v.optional(v.string()),
-    thumbnailStorageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
 
   // Generation records
   generations: defineTable({
-    userId: v.string(),
+    userId: v.id("users"),
     modelKey: v.string(),
     promptOriginal: v.string(),
     promptFinal: v.string(),

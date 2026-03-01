@@ -1,24 +1,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
     return await ctx.storage.generateUploadUrl();
   },
 });
 
 export const createAsset = mutation({
   args: {
-    userId: v.string(),
     label: v.string(),
     storageId: v.id("_storage"),
     sourceType: v.union(v.literal("upload"), v.literal("generated")),
     mimeType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
     return await ctx.db.insert("assets", {
-      userId: args.userId,
+      userId,
       label: args.label,
       storageId: args.storageId,
       sourceType: args.sourceType,
@@ -32,11 +36,12 @@ export const updateAssetLabel = mutation({
   args: {
     assetId: v.id("assets"),
     label: v.string(),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
     const asset = await ctx.db.get(args.assetId);
-    if (!asset || asset.userId !== args.userId) {
+    if (!asset || asset.userId !== userId) {
       throw new Error("Asset not found or unauthorized");
     }
     await ctx.db.patch(args.assetId, { label: args.label });
@@ -46,11 +51,12 @@ export const updateAssetLabel = mutation({
 export const deleteAsset = mutation({
   args: {
     assetId: v.id("assets"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
     const asset = await ctx.db.get(args.assetId);
-    if (!asset || asset.userId !== args.userId) {
+    if (!asset || asset.userId !== userId) {
       throw new Error("Asset not found or unauthorized");
     }
     await ctx.storage.delete(asset.storageId);
@@ -59,11 +65,13 @@ export const deleteAsset = mutation({
 });
 
 export const listAssets = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     const assets = await ctx.db
       .query("assets")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
 
@@ -77,10 +85,12 @@ export const listAssets = query({
 });
 
 export const getAsset = query({
-  args: { assetId: v.id("assets"), userId: v.string() },
+  args: { assetId: v.id("assets") },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
     const asset = await ctx.db.get(args.assetId);
-    if (!asset || asset.userId !== args.userId) return null;
+    if (!asset || asset.userId !== userId) return null;
     return {
       ...asset,
       url: await ctx.storage.getUrl(asset.storageId),

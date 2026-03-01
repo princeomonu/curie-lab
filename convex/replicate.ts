@@ -68,7 +68,6 @@ export const enhancePromptWithClaude = action({
 export const submitGeneration = action({
   args: {
     generationId: v.id("generations"),
-    userId: v.string(),
     modelKey: v.string(),
     promptFinal: v.string(),
     referenceAssetIds: v.array(v.id("assets")),
@@ -86,7 +85,7 @@ export const submitGeneration = action({
     for (const assetId of args.referenceAssetIds) {
       const asset: { url: string | null } | null = await ctx.runQuery(
         api.assets.getAsset,
-        { assetId, userId: args.userId }
+        { assetId }
       );
       if (asset?.url) referenceUrls.push(asset.url);
     }

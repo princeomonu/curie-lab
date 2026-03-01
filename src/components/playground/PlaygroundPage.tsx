@@ -13,18 +13,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MODELS, getModel } from "@/lib/models";
 import type { AspectRatio, Resolution, Duration, Generation, Asset } from "@/types";
 import { Sparkles, Loader2, FlaskConical } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
 import { UserMenu } from "./UserMenu";
 
-// Separator component inline since we need simple divider
 function Sep() {
   return <div className="border-t border-[#e5e7eb] my-4" />;
 }
 
 export function PlaygroundPage() {
-  const { user } = useUser();
-  const userId = user?.id ?? "";
-
   // State
   const [modelKey, setModelKey] = useState("nanobanana2");
   const [segments, setSegments] = useState<PromptSegment[]>([
@@ -40,16 +35,15 @@ export function PlaygroundPage() {
 
   const currentModel = getModel(modelKey) ?? MODELS[0]!;
 
-  // Convex
+  // Convex — auth is handled server-side, no userId needed on client
   const createGeneration = useMutation(api.generations.createGeneration);
   const submitGeneration = useAction(api.replicate.submitGeneration);
   const enhancePrompt = useAction(api.replicate.enhancePromptWithClaude);
   const activeGeneration = useQuery(
     api.generations.getGeneration,
-    activeGenerationId ? { generationId: activeGenerationId, userId } : "skip"
+    activeGenerationId ? { generationId: activeGenerationId } : "skip"
   ) as Generation | null | undefined;
 
-  // Auto-refresh: poll if processing
   const isLive =
     activeGeneration?.status === "processing" ||
     activeGeneration?.status === "queued";
@@ -77,10 +71,6 @@ export function PlaygroundPage() {
     }
   };
 
-  const handleAddReference = () => {
-    setAssetModalOpen(true);
-  };
-
   const handleAssetSelect = (asset: Asset) => {
     const newToken: PromptSegment = {
       type: "token",
@@ -88,7 +78,6 @@ export function PlaygroundPage() {
       token: { assetId: asset._id, label: asset.label },
     };
     setSegments((prev) => {
-      // Append after last text
       const last = prev[prev.length - 1];
       if (last?.type === "text") {
         return [...prev.slice(0, -1), last, newToken, { type: "text", value: " " }];
@@ -107,7 +96,6 @@ export function PlaygroundPage() {
     setGenerating(true);
     try {
       const genId = await createGeneration({
-        userId,
         modelKey,
         promptOriginal: promptText,
         promptFinal: promptText,
@@ -123,10 +111,8 @@ export function PlaygroundPage() {
       setActiveGenerationId(genId);
       setGenerating(false);
 
-      // Submit to Replicate in background (action handles polling)
       submitGeneration({
         generationId: genId,
-        userId,
         modelKey,
         promptFinal: promptText,
         referenceAssetIds: getReferenceAssetIds(),
@@ -143,7 +129,6 @@ export function PlaygroundPage() {
     }
   };
 
-  // When model changes, reset unsupported controls
   const handleModelChange = (key: string) => {
     setModelKey(key);
     const m = getModel(key);
@@ -161,7 +146,6 @@ export function PlaygroundPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <header className="border-b border-[#e5e7eb] px-6 py-3 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-[#7c3aed] flex items-center justify-center">
@@ -188,7 +172,7 @@ export function PlaygroundPage() {
                 onCinematic={handleCinematic}
                 cinematicLoading={cinematicLoading}
                 supportsReferenceAssets={currentModel.supportsReferenceAssets}
-                onAddReference={handleAddReference}
+                onAddReference={() => setAssetModalOpen(true)}
               />
 
               <Sep />
@@ -228,7 +212,6 @@ export function PlaygroundPage() {
         {/* Right Panel */}
         <main className="flex-1 overflow-auto">
           <div className="p-6 space-y-8">
-            {/* Current Generation */}
             <section>
               <h2 className="text-sm font-semibold text-[#6b7280] uppercase tracking-wider mb-4">
                 Current Generation
@@ -241,14 +224,14 @@ export function PlaygroundPage() {
               </div>
             </section>
 
-            {/* Gallery */}
             <section>
               <h2 className="text-sm font-semibold text-[#6b7280] uppercase tracking-wider mb-4">
                 Your Gallery
               </h2>
               <Gallery
-                userId={userId}
-                onSelectGeneration={(gen) => setActiveGenerationId(gen._id as Id<"generations">)}
+                onSelectGeneration={(gen) =>
+                  setActiveGenerationId(gen._id as Id<"generations">)
+                }
               />
             </section>
           </div>
@@ -259,7 +242,6 @@ export function PlaygroundPage() {
         open={assetModalOpen}
         onClose={() => setAssetModalOpen(false)}
         onSelect={handleAssetSelect}
-        userId={userId}
       />
     </div>
   );

@@ -1,9 +1,9 @@
-import { useClerk } from "@clerk/clerk-react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function NotInvitedPage() {
-  const { signOut } = useClerk();
+  const { signOut } = useAuthActions();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-[#faf9ff] to-[#f4f0ff] flex flex-col items-center justify-center p-4">
@@ -18,7 +18,7 @@ export function NotInvitedPage() {
             Please contact your administrator for access.
           </p>
         </div>
-        <Button variant="outline" onClick={() => signOut()}>
+        <Button variant="outline" onClick={() => void signOut()}>
           Sign Out
         </Button>
       </div>

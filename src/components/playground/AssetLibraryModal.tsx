@@ -20,11 +20,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSelect: (asset: Asset) => void;
-  userId: string;
 }
 
-export function AssetLibraryModal({ open, onClose, onSelect, userId }: Props) {
-  const assets = useQuery(api.assets.listAssets, { userId }) as Asset[] | undefined;
+export function AssetLibraryModal({ open, onClose, onSelect }: Props) {
+  const assets = useQuery(api.assets.listAssets) as Asset[] | undefined;
   const generateUploadUrl = useMutation(api.assets.generateUploadUrl);
   const createAsset = useMutation(api.assets.createAsset);
   const deleteAsset = useMutation(api.assets.deleteAsset);
@@ -62,13 +61,7 @@ export function AssetLibraryModal({ open, onClose, onSelect, userId }: Props) {
       const { storageId } = await res.json();
 
       const label = file.name.replace(/\.[^.]+$/, "").slice(0, 32);
-      await createAsset({
-        userId,
-        label,
-        storageId,
-        sourceType: "upload",
-        mimeType: file.type,
-      });
+      await createAsset({ label, storageId, sourceType: "upload", mimeType: file.type });
     } catch (err) {
       console.error(err);
       alert("Upload failed. Please try again.");
@@ -80,17 +73,13 @@ export function AssetLibraryModal({ open, onClose, onSelect, userId }: Props) {
 
   const handleDelete = async (assetId: string) => {
     if (!confirm("Delete this asset?")) return;
-    await deleteAsset({ assetId: assetId as Id<"assets">, userId });
+    await deleteAsset({ assetId: assetId as Id<"assets"> });
     if (selectedId === assetId) setSelectedId(null);
   };
 
   const handleEditLabel = async (assetId: string) => {
     if (!editLabel.trim()) return;
-    await updateLabel({
-      assetId: assetId as Id<"assets">,
-      label: editLabel.trim(),
-      userId,
-    });
+    await updateLabel({ assetId: assetId as Id<"assets">, label: editLabel.trim() });
     setEditingId(null);
   };
 
@@ -193,7 +182,7 @@ export function AssetLibraryModal({ open, onClose, onSelect, userId }: Props) {
                           onChange={(e) => setEditLabel(e.target.value)}
                           className="h-6 text-xs"
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") handleEditLabel(asset._id);
+                            if (e.key === "Enter") void handleEditLabel(asset._id);
                             if (e.key === "Escape") setEditingId(null);
                           }}
                           autoFocus
@@ -202,7 +191,7 @@ export function AssetLibraryModal({ open, onClose, onSelect, userId }: Props) {
                           size="icon"
                           variant="ghost"
                           className="h-6 w-6"
-                          onClick={() => handleEditLabel(asset._id)}
+                          onClick={() => void handleEditLabel(asset._id)}
                         >
                           <Check className="h-3 w-3" />
                         </Button>
@@ -227,7 +216,7 @@ export function AssetLibraryModal({ open, onClose, onSelect, userId }: Props) {
                           </button>
                           <button
                             className="p-0.5 hover:text-red-500 text-[#6b7280]"
-                            onClick={() => handleDelete(asset._id)}
+                            onClick={() => void handleDelete(asset._id)}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
