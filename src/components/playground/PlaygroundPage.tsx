@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MODELS, getModel } from "@/lib/models";
 import type { AspectRatio, Resolution, Duration, Generation, Asset } from "@/types";
-import { Sparkles, Loader2, FlaskConical } from "lucide-react";
+import { Sparkles, Loader2, FlaskConical, Mail } from "lucide-react";
 import { UserMenu } from "./UserMenu";
+import { InviteModal } from "./InviteModal";
 
 function Sep() {
   return <div className="border-t border-[#e5e7eb] my-4" />;
@@ -29,6 +30,7 @@ export function PlaygroundPage() {
   const [resolution, setResolution] = useState<Resolution>("standard");
   const [duration, setDuration] = useState<Duration>("5s");
   const [assetModalOpen, setAssetModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [cinematicLoading, setCinematicLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [activeGenerationId, setActiveGenerationId] = useState<Id<"generations"> | null>(null);
@@ -154,7 +156,18 @@ export function PlaygroundPage() {
           <span className="font-semibold text-[#0f0f11] tracking-tight">Curie Lab</span>
           <span className="text-xs text-[#9ca3af] ml-1">Private Creative Playground</span>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInviteModalOpen(true)}
+            className="gap-1.5 h-7 text-xs"
+          >
+            <Mail className="h-3 w-3" />
+            Invite
+          </Button>
+          <UserMenu />
+        </div>
       </header>
 
       <div className="flex h-[calc(100vh-53px)]">
@@ -242,6 +255,10 @@ export function PlaygroundPage() {
         open={assetModalOpen}
         onClose={() => setAssetModalOpen(false)}
         onSelect={handleAssetSelect}
+      />
+      <InviteModal
+        open={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
       />
     </div>
   );

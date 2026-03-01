@@ -5,11 +5,17 @@ import { authTables } from "@convex-dev/auth/server";
 export default defineSchema({
   ...authTables,
 
-  // Whitelisted emails
+  // Invited users — created when invite is sent; first user is auto-added
   invitedUsers: defineTable({
     email: v.string(),
     invitedAt: v.number(),
-  }).index("by_email", ["email"]),
+    invitedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),      // invite link token
+    expiresAt: v.optional(v.number()),  // token expiry
+    usedAt: v.optional(v.number()),     // set when the account is created
+  })
+    .index("by_email", ["email"])
+    .index("by_token", ["token"]),
 
   // Reusable reference assets
   assets: defineTable({

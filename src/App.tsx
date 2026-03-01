@@ -8,11 +8,9 @@ import { Loader2, FlaskConical } from "lucide-react";
 function AppContent() {
   const { isAuthenticated, isLoading } = useConvexAuth();
 
-  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : "skip");
-
   const isInvited = useQuery(
     api.users.isInvited,
-    viewer?.email ? { email: viewer.email } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   if (isLoading) {
@@ -32,7 +30,7 @@ function AppContent() {
     return <LoginPage />;
   }
 
-  if (viewer === undefined || isInvited === undefined) {
+  if (isInvited === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-[#7c3aed]" />
